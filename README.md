@@ -12,7 +12,7 @@ _✨ 为你的NoneBot侧载一个OneBot V11 Web聊天面板 ✨_
 
 
 <a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/owner/nonebot-plugin-sideload" alt="license">
+    <img src="https://img.shields.io/github/license/NonebotGUI/nonebot-plugin-sideload" alt="license">
 </a>
 <a href="https://pypi.python.org/pypi/nonebot-plugin-sideload.svg">
     <img src="https://img.shields.io/pypi/v/nonebot-plugin-sideload.svg" alt="pypi">
