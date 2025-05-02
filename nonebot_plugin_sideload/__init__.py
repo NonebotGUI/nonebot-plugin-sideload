@@ -137,6 +137,8 @@ async def handle_bot_connect(bot: Bot):
 
 @driver.on_bot_disconnect
 async def handle_bot_disconnect(bot: Bot):
+    global is_connected
+    is_connected = False
     if db:
         await cursor.close()
         await db.close()
@@ -479,9 +481,6 @@ async def ws_handler(ws: WebSocket):
                 await ws.send_text("Unauthorized")
                 break
     except nonebot.exception.WebSocketClosed:
-        db.close()
-        global is_connected
-        is_connected = False
         logger.info("WebSocket连接关闭")
     return
 
