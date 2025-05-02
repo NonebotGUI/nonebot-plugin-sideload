@@ -38,6 +38,7 @@ jobs:
 
       - name: Copy build files
         run: |
+          cd sideload_webui/
           rm build/web/flutter_service_worker.js
           cp build/web ../nonebot_plugin_sideload/ -r
 
