@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  publish:
     name: Build Dashboard (canvaskit)
     runs-on: ubuntu-latest
 
@@ -41,34 +41,27 @@ jobs:
           cd sideload_webui/
           rm build/web/flutter_service_worker.js
           cp build/web ../nonebot_plugin_sideload/ -r
+          cd ../
 
-
-
-  pypi-publish:
-    name: Upload release to PyPI
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-    - uses: actions/checkout@master
-    - name: Set up Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: "3.x"
-    - name: Install pypa/build
-      run: >-
-        python -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: >-
-        python -m
-        build
-        --sdist
-        --wheel
-        --outdir dist/
-        .
-    - name: Publish distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.x"
+      - name: Install pypa/build
+        run: >-
+          python -m
+          pip install
+          build
+          --user
+      - name: Build a binary wheel and a source tarball
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+          .
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
