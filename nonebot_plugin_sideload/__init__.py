@@ -31,7 +31,7 @@ __plugin_meta__ = PluginMetadata(
     description="为你的NoneBot侧载一个OneBot V11 Web聊天面板",
     usage="连接Bot即可使用",
     type="application",
-    homepage="https://github.com/NonebotGUI/nonebot-plugin-bot-tap",
+    homepage="https://github.com/NonebotGUI/nonebot-plugin-sideload",
     config=Config,
     supported_adapters={"~onebot.v11"},
 )
