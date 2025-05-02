@@ -27,8 +27,12 @@ class _HomeScreenState extends State<MainPageMobile> {
 
   @override
   void initState() {
-    super.initState();
-  }
+  super.initState();
+  Future.delayed(Duration(milliseconds: 100), () {
+    setState(() {
+    });
+  });
+}
 
   @override
   void dispose() {
