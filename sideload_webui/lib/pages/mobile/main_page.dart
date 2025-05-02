@@ -23,16 +23,43 @@ class _HomeScreenState extends State<MainPageMobile> {
   int _selectedIndex = 0;
   Timer? timer;
   Timer? timer2;
-  int runningCount = 0;
 
   @override
   void initState() {
-  super.initState();
-  Future.delayed(Duration(milliseconds: 100), () {
+    super.initState();
     setState(() {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {});
+      });
     });
-  });
-}
+    socket.onMessage.listen((MessageEvent msg) async {
+      String? msg0 = msg.data;
+      if (msg0 != null) {
+        Map<String, dynamic> msgJson = jsonDecode(msg0);
+        String type = msgJson['type'];
+        switch (type) {
+          case 'total':
+            Map data = msgJson['data'];
+            Data.botInfo = data;
+            setState(() {
+              Data.groupList = data['group_list'];
+              Data.friendList = data['friend_list'];
+            });
+            break;
+          case 'group_msg':
+            List data = msgJson['data'];
+            Data.groupMessage = data;
+            setState(() {});
+            break;
+          case 'friend_msg':
+            List data = msgJson['data'];
+            Data.friendMessage = data;
+            setState(() {});
+            break;
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
