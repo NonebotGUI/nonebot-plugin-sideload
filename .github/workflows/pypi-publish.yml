@@ -7,9 +7,46 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    name: Build Dashboard (canvaskit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+
+      - name: Fetch Chrome
+        uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+      - run: export CHROME_EXECUTABLE=${{ steps.setup-chrome.outputs.chrome-path }}
+
+      - name: Setup Flutter SDK
+        uses: flutter-actions/setup-flutter@v4
+        with:
+          channel: stable
+          version: 3.22.1
+
+
+      - name: Build
+        run: |
+          cd sideload_webui/
+          flutter pub get
+          flutter build web  --pwa-strategy none --web-renderer canvaskit --release
+
+      - name: Copy build files
+        run: |
+          rm build/web/flutter_service_worker.js
+          cp build/web ../nonebot_plugin_sideload/ -r
+
+
+
   pypi-publish:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
+    needs: build
     steps:
     - uses: actions/checkout@master
     - name: Set up Python
