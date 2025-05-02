@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:html';
 import 'package:sideload_webui/main.dart';
 import 'package:flutter/material.dart';
