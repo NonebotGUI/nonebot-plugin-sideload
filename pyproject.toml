@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-sideload"
-version = "0.1.6"
+version = "0.1.7"
 description = "为你的NoneBot侧载一个OneBot V11 Web聊天面板"
 authors = ["【夜风】NightWind <2125714976@qq.com>"]
 license = "GPL3"
