@@ -7,8 +7,8 @@ license = "GPL3"
 readme = "README.md"
 packages = [
     {include = "nonebot_plugin_sideload"},
-    {include = "nonebot_plugin_sideload/web"}
 ]
+include = ["nonebot_plugin_sideload/web/**/*"]
 homepage = "https://github.com/NonebotGUI/nonebot-plugin-sideload"
 repository = "https://github.com/NonebotGUI/nonebot-plugin-sideload"
 documentation = "https://github.com/NonebotGUI/nonebot-plugin-sideload#README.md"
