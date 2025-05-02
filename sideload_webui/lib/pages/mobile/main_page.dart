@@ -108,12 +108,11 @@ class _HomeScreenState extends State<MainPageMobile> {
           margin: const EdgeInsets.all(4),
           child: Column(
             children: <Widget>[
-              _selectedIndex == 1
-                  ? Container(
-                      alignment: Alignment.topCenter,
-                      child: ListView.builder(
+              Expanded(
+                child: _selectedIndex == 1
+                    ? ListView.builder(
                         itemCount: Data.groupList.length,
-                        shrinkWrap: true,
+                        shrinkWrap: false,
                         padding: EdgeInsets.zero,
                         physics: const AlwaysScrollableScrollPhysics(),
                         itemBuilder: (context, index) {
@@ -157,13 +156,10 @@ class _HomeScreenState extends State<MainPageMobile> {
                             },
                           );
                         },
-                      ),
-                    )
-                  : Container(
-                      alignment: Alignment.topCenter,
-                      child: ListView.builder(
+                      )
+                    : ListView.builder(
                         itemCount: Data.friendList.length,
-                        shrinkWrap: true,
+                        shrinkWrap: false,
                         padding: EdgeInsets.zero,
                         physics: const AlwaysScrollableScrollPhysics(),
                         itemBuilder: (context, index) {
@@ -207,7 +203,7 @@ class _HomeScreenState extends State<MainPageMobile> {
                           );
                         },
                       ),
-                    )
+              ),
             ],
           ),
         ));
