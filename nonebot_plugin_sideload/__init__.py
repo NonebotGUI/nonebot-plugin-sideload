@@ -485,64 +485,66 @@ async def ws_handler(ws: WebSocket):
         logger.info("WebSocket连接关闭")
     return
 
-
-if isinstance((driver := get_driver()), ASGIMixin):
-    driver.setup_http_server(
-        HTTPServerSetup(
-            path=URL("/nbgui/v1/sideload{path:path}"),
-            method="GET",
-            name="webui",
-            handle_func=webui_main,
+try:
+    if isinstance((driver := get_driver()), ASGIMixin):
+        driver.setup_http_server(
+            HTTPServerSetup(
+                path=URL("/nbgui/v1/sideload{path:path}"),
+                method="GET",
+                name="webui",
+                handle_func=webui_main,
+            )
         )
-    )
 
 
-if isinstance((driver := get_driver()), ASGIMixin):
-    driver.setup_http_server(
-        HTTPServerSetup(
-            path=URL("/sideload/avatars/user{path:path}"),
-            method="GET",
-            name="file_server",
-            handle_func=user_avatar,
+    if isinstance((driver := get_driver()), ASGIMixin):
+        driver.setup_http_server(
+            HTTPServerSetup(
+                path=URL("/sideload/avatars/user{path:path}"),
+                method="GET",
+                name="file_server",
+                handle_func=user_avatar,
+            )
         )
-    )
 
-if isinstance((driver := get_driver()), ASGIMixin):
-    driver.setup_http_server(
-        HTTPServerSetup(
-            path=URL("/sideload/avatars/group{path:path}"),
-            method="GET",
-            name="file_server",
-            handle_func=group_avatar,
+    if isinstance((driver := get_driver()), ASGIMixin):
+        driver.setup_http_server(
+            HTTPServerSetup(
+                path=URL("/sideload/avatars/group{path:path}"),
+                method="GET",
+                name="file_server",
+                handle_func=group_avatar,
+            )
         )
-    )
 
-if isinstance((driver := get_driver()), ASGIMixin):
-    driver.setup_http_server(
-        HTTPServerSetup(
-            path=URL("/sideload/image{path:path}"),
-            method="GET",
-            name="file_server",
-            handle_func=image,
+    if isinstance((driver := get_driver()), ASGIMixin):
+        driver.setup_http_server(
+            HTTPServerSetup(
+                path=URL("/sideload/image{path:path}"),
+                method="GET",
+                name="file_server",
+                handle_func=image,
+            )
         )
-    )
 
-if isinstance((driver := get_driver()), ASGIMixin):
-    driver.setup_http_server(
-        HTTPServerSetup(
-            path=URL("/sideload/auth"),
-            method="POST",
-            name="auth",
-            handle_func=auth,
+    if isinstance((driver := get_driver()), ASGIMixin):
+        driver.setup_http_server(
+            HTTPServerSetup(
+                path=URL("/sideload/auth"),
+                method="POST",
+                name="auth",
+                handle_func=auth,
+            )
         )
-    )
 
 
-if isinstance((driver := get_driver()), ASGIMixin):
-    driver.setup_websocket_server(
-        WebSocketServerSetup(
-            path=URL("/nbgui/v1/sideload/ws"),
-            name="ws",
-            handle_func=ws_handler,
+    if isinstance((driver := get_driver()), ASGIMixin):
+        driver.setup_websocket_server(
+            WebSocketServerSetup(
+                path=URL("/nbgui/v1/sideload/ws"),
+                name="ws",
+                handle_func=ws_handler,
+            )
         )
-    )
+except NotImplementedError:
+    logger.warning("似乎启动失败咯？")
