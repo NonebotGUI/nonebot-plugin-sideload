@@ -70,7 +70,7 @@ class _HomeScreenState extends State<ChatPrivateMobile> {
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (friendOnOpen.isNotEmpty) {
         socket.send(
-          '{"type":"get_friend_message","group_id":"$friendOnOpen", "password":"${Config.password}"}',
+          '{"type":"get_friend_message","user_id":"$friendOnOpen", "password":"${Config.password}"}',
         );
         setState(() {});
         _updateMessages();
