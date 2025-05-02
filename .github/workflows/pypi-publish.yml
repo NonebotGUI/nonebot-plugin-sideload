@@ -8,7 +8,7 @@ on:
 
 jobs:
   publish:
-    name: Build Dashboard (canvaskit)
+    name: Publish
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
         run: |
           cd sideload_webui/
           flutter pub get
-          flutter build web  --pwa-strategy none --web-renderer canvaskit --release
+          flutter build web  --pwa-strategy none --web-renderer canvaskit --release --base-href "/nbgui/v1/sideload/"
 
       - name: Copy build files
         run: |
