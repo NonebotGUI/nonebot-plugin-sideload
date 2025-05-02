@@ -147,8 +147,8 @@ async def handle_bot_disconnect(bot: Bot):
 @event_preprocessor
 async def _(bot: Bot, event: Event):
     if event.get_type() == "message":
-        global rec
-        rec += 1
+        # global rec
+        # rec += 1
         await cursor.execute('UPDATE total SET received = ? WHERE id = ?', (rec, bot.self_id))
         await db.commit()
     return
