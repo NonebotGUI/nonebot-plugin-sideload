@@ -23,6 +23,9 @@ _✨ 为你的NoneBot侧载一个OneBot V11 Web聊天面板 ✨_
 </div>
 
 
+> [!warning] 
+> 当前版本由于频繁使用 `call_api` ，容易造成风控，请谨慎思考后再安装！！！
+
 ## 📖 介绍
 
 为你的NoneBot侧载一个OneBot V11 Web聊天面板，连接到Bot即可使用
