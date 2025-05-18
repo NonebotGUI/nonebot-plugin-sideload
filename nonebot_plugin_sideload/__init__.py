@@ -69,12 +69,78 @@ async def handle_bot_connect(bot: Bot):
     if not image_dir.exists():
         os.makedirs(image_dir)
     is_connected = True
-    global bot_id
+    global bot_id, bot_nickname
     bot_id = bot.self_id
     nickname = await bot.call_api('get_login_info')
     nickname = nickname['nickname']
-    logger.success(f"Bot {bot_id} 已连接，现在可以访问 http://ip:port/nbgui/v1/sideload 进入 WebUI")
-    logger.success(f"Websocket 地址为 ws://ip:port/nbgui/v1/sideload/ws")
+    bot_nickname = str(nickname)
+    # 尝试拿用户ip
+    try:
+        import netifaces
+        def get_all_network_ips():
+            """获取所有网络接口的IP地址（排除回环接口）"""
+            ipv4_list = []
+            ipv6_list = []
+            interfaces = netifaces.interfaces()
+            for interface in interfaces:
+
+                if interface.startswith('lo'):
+                    continue
+                try:
+                    addresses = netifaces.ifaddresses(interface)
+                    if netifaces.AF_INET in addresses:  
+                        for addr in addresses[netifaces.AF_INET]:
+                            ip = addr['addr']
+                            if not ip.startswith('127.'):
+                                ipv4_list.append(ip)
+                    if netifaces.AF_INET6 in addresses:
+                        for addr in addresses[netifaces.AF_INET6]:
+                            ip = addr['addr']
+                            if not ip.startswith('fe80:'):
+                                if '%' in ip:
+                                    ip = ip.split('%')[0]
+                                ipv6_list.append(ip)
+                except Exception:
+                    pass
+            return {"ipv4": ipv4_list, "ipv6": ipv6_list}
+        public_ips = get_all_network_ips()
+
+        logger.success("=====================================================")
+        if public_ips["ipv4"] or public_ips["ipv6"]:
+            logger.success(f"Bot {bot_id} 已连接，现在可以访问以下地址进入WebUI:")
+            for ip in public_ips["ipv4"]:
+                logger.success(f"http://{ip}:{nonebot.get_driver().config.port}/nbgui/v1/sideload")
+                logger.success(f"WebSocket 地址: ws://{ip}:{nonebot.get_driver().config.port}/nbgui/v1/sideload/ws")
+            for ip in public_ips["ipv6"]:
+                logger.success(f"http://[{ip}]:{nonebot.get_driver().config.port}/nbgui/v1/sideload")
+                logger.success(f"WebSocket 地址: ws://[{ip}]:{nonebot.get_driver().config.port}/nbgui/v1/sideload/ws")
+        else:
+            logger.warning('获取IP地址失败')
+            logger.success(f"Bot {bot_id} 已连接，现在可以访问 http://ip:port/nbgui/v1/sideload 进入 WebUI")
+            logger.success(f"Websocket 地址为 ws://ip:port/nbgui/v1/sideload/ws")
+        logger.success("=====================================================")
+    except ImportError:
+        # 如果没有安装netifaces，则使用socket模块作为备选
+        try:
+            import socket
+            hostname = socket.gethostname()
+            ip_addresses = socket.gethostbyname_ex(hostname)[2]
+            public_ips = [ip for ip in ip_addresses if not ip.startswith('127.')]
+            
+            logger.success("=====================================================")
+            if public_ips:
+                logger.success(f"Bot {bot_id} 已连接，现在可以访问以下地址进入WebUI:")
+                for ip in public_ips:
+                    logger.success(f"http://{ip}:{nonebot.get_driver().config.port}/nbgui/v1/sideload")
+                    logger.success(f"WebSocket 地址: ws://{ip}:{nonebot.get_driver().config.port}/nbgui/v1/sideload/ws")
+            else:
+                logger.warning('获取IP地址失败')
+                logger.success(f"Bot {bot_id} 已连接，现在可以访问 http://ip:port/nbgui/v1/sideload 进入 WebUI")
+                logger.success(f"Websocket 地址为 ws://ip:port/nbgui/v1/sideload/ws")
+            logger.success("=====================================================")
+        except Exception as e:
+            logger.error(f"获取IP地址失败: {e}")
+            logger.success(f"Bot {bot_id} 已连接，现在可以访问 http://ip:port/nbgui/v1/sideload 进入 WebUI")
     db_path = str(data_dir) + f'/{bot_id}.db'
     global db, cursor, rec, sen
     # 连接数据库
@@ -418,7 +484,12 @@ async def ws_handler(ws: WebSocket):
                     user_id = rec_msg['user_id']
                     message = rec_msg['message']
                     res = await bot.call_api(api='send_private_msg', user_id=user_id, message=message)
-                    sender = await bot.call_api('get_login_info')
+                    id = bot_id
+                    nickname = bot_nickname
+                    sender = {
+                        "user_id": id,
+                        "nickname": nickname
+                    }
                     await cursor.execute('INSERT INTO friends (id, nickname, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (user_id, user_id, message, str(sender), "text", str(res['message_id']), time, '0'))
                     await db.commit()
                     ws_res = {
@@ -431,7 +502,12 @@ async def ws_handler(ws: WebSocket):
                     group_id = rec_msg['group_id']
                     message = rec_msg['message']
                     res = await bot.call_api(api='send_group_msg', group_id=group_id, message=message)
-                    sender = await bot.call_api('get_group_member_info', group_id=group_id, user_id=bot_id)
+                    id = bot_id
+                    nickname = bot_nickname
+                    sender = {
+                        "user_id": id,
+                        "nickname": nickname
+                    }
                     await cursor.execute('INSERT INTO groups (id, group_name, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (group_id, group_id, message, str(sender), "text", str(res['message_id']), time, '0'))
                     await db.commit()
                     ws_res = {
