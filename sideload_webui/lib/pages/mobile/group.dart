@@ -19,12 +19,19 @@ class _HomeScreenState extends State<ChatGroupMobile> {
   final ScrollController _scrollController = ScrollController();
   bool _isAtBottom = true;
   bool _showScrollToBottomButton = false;
+
+  List<dynamic> _visibleMessages = [];
+  final int _pageSize = 20;
+  bool _isLoading = false;
+  bool _hasMoreData = true;
+  Timer? _debounceTimer;
+
   @override
   void initState() {
     super.initState();
     setState(() {
       Future.delayed(const Duration(milliseconds: 100), () {
-        setState(() {});
+        _loadInitialMessages();
       });
       startTimer();
     });
@@ -36,6 +43,12 @@ class _HomeScreenState extends State<ChatGroupMobile> {
   void _scrollListener() {
     final isAtBottom = _scrollController.position.pixels >=
         (_scrollController.position.maxScrollExtent - 20);
+
+    if (_scrollController.position.pixels <= 50 &&
+        !_isLoading &&
+        _hasMoreData) {
+      _loadMoreMessages();
+    }
 
     if (isAtBottom != _isAtBottom) {
       setState(() {
@@ -55,13 +68,117 @@ class _HomeScreenState extends State<ChatGroupMobile> {
     }
   }
 
-  void _updateMessages() {
+  void _loadInitialMessages() {
+    if (Data.groupMessage.isEmpty) return;
+
     setState(() {
-      if (_isAtBottom) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToBottom();
-        });
+      _visibleMessages = Data.groupMessage.length > _pageSize
+          ? Data.groupMessage.sublist(Data.groupMessage.length - _pageSize)
+          : [...Data.groupMessage];
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
+    });
+  }
+
+  void _loadMoreMessages() {
+    if (_isLoading || _visibleMessages.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    int endIndex = Data.groupMessage.indexOf(_visibleMessages.first);
+    if (endIndex <= 0) {
+      setState(() {
+        _isLoading = false;
+        _hasMoreData = false;
+      });
+      return;
+    }
+
+    int startIndex = (endIndex - _pageSize) > 0 ? (endIndex - _pageSize) : 0;
+
+    if (startIndex < endIndex) {
+      List<dynamic> moreMessages =
+          Data.groupMessage.sublist(startIndex, endIndex);
+
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {
+            _visibleMessages.insertAll(0, moreMessages);
+            _isLoading = false;
+            if (startIndex == 0) {
+              _hasMoreData = false;
+            }
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              final currentPosition = _scrollController.position.pixels;
+              final scrollAmount = 50.0 * moreMessages.length;
+              _scrollController.jumpTo(currentPosition + scrollAmount);
+            }
+          });
+        }
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+        _hasMoreData = false;
+      });
+    }
+  }
+
+  void _updateMessages() {
+    if (Data.groupMessage.isEmpty) return;
+
+    if (_visibleMessages.isEmpty) {
+      _loadInitialMessages();
+      return;
+    }
+
+    // 检查是否有新消息
+    if (Data.groupMessage.isNotEmpty &&
+        (_visibleMessages.isEmpty ||
+            Data.groupMessage.last != _visibleMessages.last)) {
+      int lastVisibleIndex = -1;
+      if (_visibleMessages.isNotEmpty) {
+        for (int i = Data.groupMessage.length - 1; i >= 0; i--) {
+          if (Data.groupMessage[i] == _visibleMessages.last) {
+            lastVisibleIndex = i;
+            break;
+          }
+        }
       }
+
+      // 加载新消息
+      setState(() {
+        if (lastVisibleIndex >= 0 &&
+            lastVisibleIndex < Data.groupMessage.length - 1) {
+          List<dynamic> newMessages =
+              Data.groupMessage.sublist(lastVisibleIndex + 1);
+          _visibleMessages.addAll(newMessages);
+        } else if (lastVisibleIndex == -1) {
+          _visibleMessages = Data.groupMessage.length > _pageSize
+              ? Data.groupMessage.sublist(Data.groupMessage.length - _pageSize)
+              : [...Data.groupMessage];
+        }
+
+        if (_isAtBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        }
+      });
+    }
+  }
+
+  void _debouncedUpdateMessages() {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _updateMessages();
     });
   }
 
@@ -72,8 +189,7 @@ class _HomeScreenState extends State<ChatGroupMobile> {
         socket.send(
           '{"type":"get_group_message","group_id":"$groupOnOpen", "password":"${Config.password}"}',
         );
-        setState(() {});
-        _updateMessages();
+        _debouncedUpdateMessages();
       }
     });
   }
@@ -81,6 +197,7 @@ class _HomeScreenState extends State<ChatGroupMobile> {
   @override
   void dispose() {
     timer?.cancel();
+    _debounceTimer?.cancel();
     myController.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
@@ -92,8 +209,8 @@ class _HomeScreenState extends State<ChatGroupMobile> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
-
     final themeNotifier = Provider.of<ThemeNotifier>(context);
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -104,6 +221,8 @@ class _HomeScreenState extends State<ChatGroupMobile> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           tooltip: '返回',
           onPressed: () {
+            groupOnOpen = '';
+            groupOnOpenName = '';
             Navigator.pop(context);
           },
         ),
@@ -132,32 +251,58 @@ class _HomeScreenState extends State<ChatGroupMobile> {
             children: [
               Flexible(
                 flex: 4,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: Data.groupMessage.length,
-                  shrinkWrap: false,
-                  padding: const EdgeInsets.all(24),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final data = Data.groupMessage[index];
-                    final userId = data['sender']['user_id'].toString();
+                child: _visibleMessages.isEmpty && !_isLoading
+                    ? const Center(child: Text(''))
+                    : ListView.builder(
+                        controller: _scrollController,
+                        itemCount: _visibleMessages.length + 1,
+                        shrinkWrap: false,
+                        padding: const EdgeInsets.all(16),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return _isLoading
+                                ? const SizedBox(
+                                    height: 60,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                : _hasMoreData
+                                    ? const SizedBox(height: 10)
+                                    : const Padding(
+                                        padding: EdgeInsets.all(8.0),
+                                        child: Center(
+                                          child: Text(
+                                            '没有更多了',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                          }
 
-                    return MessageBubble(
-                      message: data,
-                      isCurrentUser: userId == Data.botInfo['id'],
-                      onResend: () async {
-                        setState(() {
-                          socket.send(
-                            '{"type":"send_group_msg","group_id":"$groupOnOpen","message":"${data['message'].toString()}","password":"${Config.password}"}',
+                          final data = _visibleMessages[index - 1];
+                          final userId = data['sender']['user_id'].toString();
+
+                          return MessageBubble(
+                            message: data,
+                            isCurrentUser: userId == Data.botInfo['id'],
+                            onResend: () async {
+                              setState(() {
+                                socket.send(
+                                  '{"type":"send_group_msg","group_id":"$groupOnOpen","message":"${data['message'].toString()}","password":"${Config.password}"}',
+                                );
+                                socket.send(
+                                  '{"type":"get_group_message","group_id":"$groupOnOpen", "password":"${Config.password}"}',
+                                );
+                              });
+                            },
                           );
-                          socket.send(
-                            '{"type":"get_group_message","group_id":"$groupOnOpen", "password":"${Config.password}"}',
-                          );
-                        });
-                      },
-                    );
-                  },
-                ),
+                        },
+                      ),
               ),
               const Divider(
                 height: 1,
@@ -212,6 +357,10 @@ class _HomeScreenState extends State<ChatGroupMobile> {
                               );
                             });
                             myController.clear();
+                            Future.delayed(const Duration(milliseconds: 300),
+                                () {
+                              _scrollToBottom();
+                            });
                           }
                         },
                       ),
