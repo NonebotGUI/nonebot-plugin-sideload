@@ -158,9 +158,12 @@ async def _(bot: Bot, event: Event):
 async def handle_group_message(bot: Bot, event: GroupMessageEvent):
     time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     group_id = event.group_id
-    group_info = await bot.call_api('get_group_info', group_id=group_id)
-    group_name = group_info['group_name']
-    sender = await bot.call_api('get_group_member_info', group_id=group_id, user_id=event.get_user_id())
+    uid = event.get_user_id()
+    nickname = event.sender.nickname
+    sender = {
+        "user_id": uid,
+        "nickname": nickname
+    }
     msg_id = event.message_id
 
     message = "暂不支持该消息类型"
@@ -171,16 +174,14 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent):
             msg_type = 'image'
             message = i.data['url'].replace('https://', 'http://')
             await cursor.execute('INSERT INTO groups (id, group_name, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
-                            (group_id, group_name, message, str(sender), msg_type, msg_id, time, '0'))
+                            (group_id, group_id, message, str(sender), msg_type, msg_id, time, '0'))
             await db.commit()
-            break
         elif i.type == 'text':
             msg_type = 'text'
             message = i.data['text']
             await cursor.execute('INSERT INTO groups (id, group_name, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
-                            (group_id, group_name, message, str(sender), msg_type, msg_id, time, '0'))
+                            (group_id, group_id, message, str(sender), msg_type, msg_id, time, '0'))
             await db.commit()
-            break
     return
 
 # 监听群事件
@@ -198,9 +199,12 @@ async def handle_group_notice(bot: Bot, event: GroupRecallNoticeEvent):
 async def handle_private_message(bot: Bot, event: PrivateMessageEvent):
     time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     id = event.get_user_id()
-    sender  = await bot.call_api('get_stranger_info', user_id=id)
+    nickname = event.sender.nickname
     msg_id = event.message_id
-    nickname = sender['nickname']
+    sender = {
+        "user_id": id,
+        "nickname": nickname
+    }
     message = "暂不支持该消息类型"
     msg_type = "unknown"
     for i in event.message:
@@ -210,14 +214,18 @@ async def handle_private_message(bot: Bot, event: PrivateMessageEvent):
             await cursor.execute('INSERT INTO friends (id, nickname, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
                         (id, nickname, message, str(sender), msg_type, msg_id, time, '0'))
             await db.commit()
-            break
         elif i.type == 'text':
             msg_type = 'text'
             message = i.data['text']
             await cursor.execute('INSERT INTO friends (id, nickname, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
                         (id, nickname, message, str(sender), msg_type, msg_id, time, '0'))
             await db.commit()
-            break
+        elif i.type == 'video':
+            msg_type = 'video'
+            message = i.data['url']
+            await cursor.execute('INSERT INTO friends (id, nickname, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+                        (id, nickname, message, str(sender), msg_type, msg_id, time, '0'))
+            await db.commit()
     return
 
 # 监听私聊事件
@@ -411,7 +419,7 @@ async def ws_handler(ws: WebSocket):
                     message = rec_msg['message']
                     res = await bot.call_api(api='send_private_msg', user_id=user_id, message=message)
                     sender = await bot.call_api('get_login_info')
-                    await cursor.execute('INSERT INTO friends (id, nickname, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (user_id, user_id, message, str(sender), "text", str(res), time, '0'))
+                    await cursor.execute('INSERT INTO friends (id, nickname, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (user_id, user_id, message, str(sender), "text", str(res['message_id']), time, '0'))
                     await db.commit()
                     ws_res = {
                         'type': 'send_private_msg',
@@ -424,7 +432,7 @@ async def ws_handler(ws: WebSocket):
                     message = rec_msg['message']
                     res = await bot.call_api(api='send_group_msg', group_id=group_id, message=message)
                     sender = await bot.call_api('get_group_member_info', group_id=group_id, user_id=bot_id)
-                    await cursor.execute('INSERT INTO groups (id, group_name, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (group_id, group_id, message, str(sender), "text", str(res), time, '0'))
+                    await cursor.execute('INSERT INTO groups (id, group_name, message, sender, type, msg_id, time, drawed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (group_id, group_id, message, str(sender), "text", str(res['message_id']), time, '0'))
                     await db.commit()
                     ws_res = {
                         'type': 'send_group_msg',
