@@ -9,6 +9,11 @@ Future<void> wsHandler(MessageEvent msg) async {
   String? msg0 = msg.data;
   // 检查是否为json
   if (msg0 != null) {
+    if (msg0 == "Unauthorized") {
+      print("WebSocket message: Unauthorized");
+      // TODO: Handle unauthorized access, e.g., notify user or attempt re-authentication
+      return;
+    }
     Map<String, dynamic> msgJson = jsonDecode(msg0);
     String type = msgJson['type'];
     switch (type) {

@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:async';
-import 'dart:html';
+import 'dart:html' as html;
 import 'package:sideload_webui/utils/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:sideload_webui/utils/global.dart';
@@ -228,41 +228,57 @@ class _HomeScreenState extends State<ChatGroup> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   itemBuilder: (context, index) {
                     return Container(
-                        color: Data.groupList[index]['group_id'].toString() ==
-                                groupOnOpen
-                            ? Config.user['color'] == 'default' ||
-                                    Config.user['color'] == 'light'
-                                ? const Color.fromRGBO(0, 153, 255, 1)
-                                : const Color.fromRGBO(147, 112, 219, 1)
-                            : Colors.transparent,
+                        decoration: BoxDecoration(
+                          color: Data.groupList[index]['group_id'].toString() ==
+                                  groupOnOpen
+                              ? const Color(0xFFE94B4B)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: NetworkImage(
-                              '${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/avatars/group/${Data.groupList[index]['group_id']}.png',
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          leading: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFFFFB6C1), // 浅粉色背景
+                            ),
+                            child: CircleAvatar(
+                              radius: 25,
+                              backgroundColor: Colors.transparent,
+                              backgroundImage: NetworkImage(
+                                '${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/avatars/group/${Data.groupList[index]['group_id']}.png',
+                              ),
+                              onBackgroundImageError: (exception, stackTrace) {},
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFFFFB6C1).withOpacity(0.3),
+                                ),
+                              ),
                             ),
                           ),
                           title: Text(
                             Data.groupList[index]['group_name'].toString(),
                             style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 color: Data.groupList[index]['group_id']
                                             .toString() ==
                                         groupOnOpen
                                     ? Colors.white
-                                    : Config.user['color'] == 'default' ||
-                                            Config.user['color'] == 'light'
-                                        ? Colors.black
-                                        : Colors.white),
+                                    : Colors.black87),
                           ),
                           subtitle: Text(
                             Data.groupList[index]['group_id'].toString(),
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               color: Data.groupList[index]['group_id']
                                           .toString() ==
                                       groupOnOpen
-                                  ? Colors.grey[200]
+                                  ? Colors.white70
                                   : Colors.grey[600],
                             ),
                           ),
@@ -380,6 +396,13 @@ class _HomeScreenState extends State<ChatGroup> {
                               flex: 1,
                               child: Container(
                                   padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                   child: Stack(
                                     children: [
                                       TextField(
@@ -402,14 +425,7 @@ class _HomeScreenState extends State<ChatGroup> {
                                         bottom: 0,
                                         child: IconButton(
                                           icon: const Icon(Icons.send),
-                                          color: Config.user['color'] ==
-                                                      'default' ||
-                                                  Config.user['color'] ==
-                                                      'light'
-                                              ? const Color.fromRGBO(
-                                                  0, 153, 255, 1)
-                                              : const Color.fromRGBO(
-                                                  147, 112, 219, 1),
+                                          color: const Color(0xFFE94B4B),
                                           onPressed: () {
                                             if (myController.text.isNotEmpty) {
                                               final messageText = myController
@@ -443,7 +459,7 @@ class _HomeScreenState extends State<ChatGroup> {
                         if (_showScrollToBottomButton)
                           Positioned(
                             right: 16,
-                            bottom: 80,
+                            bottom: 16,
                             child: FloatingActionButton(
                               mini: true,
                               backgroundColor: Theme.of(context).primaryColor,

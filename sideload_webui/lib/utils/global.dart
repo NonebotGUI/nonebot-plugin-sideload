@@ -48,4 +48,4 @@ class Data {
 }
 
 // 神秘开关
-bool debug = false;
+bool debug = true;

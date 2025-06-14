@@ -1,7 +1,9 @@
-import 'dart:html';
+import 'dart:html' as html;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:sideload_webui/utils/global.dart';
+
 
 class MessageBubble extends StatelessWidget {
   final Map<String, dynamic> message;
@@ -17,6 +19,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final data = message;
     final sender = data['sender'];
     final nickname = sender['nickname'].toString();
@@ -41,14 +44,14 @@ class MessageBubble extends StatelessWidget {
                   context: context,
                   builder: (context) => Dialog(
                     child: Image.network(
-                      '${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/image/$msgId',
+                      '${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/image/$msgId',
                       fit: BoxFit.contain,
                     ),
                   ),
                 );
               },
               child: Image.network(
-                '${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/image/$msgId',
+                '${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/image/$msgId',
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -84,7 +87,12 @@ class MessageBubble extends StatelessWidget {
             child: SelectableText(
               messageContent,
               style: TextStyle(
-                color: isCurrentUser ? Colors.white : null,
+                color: isCurrentUser 
+                  ? colorScheme.onPrimaryContainer 
+                  : colorScheme.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                height: 1.4,
               ),
               toolbarOptions: const ToolbarOptions(
                 copy: true,
@@ -99,22 +107,35 @@ class MessageBubble extends StatelessWidget {
 
     if (hideIfRecalled) {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              "$nickname撤回了一条消息",
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceVariant.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: colorScheme.outline.withOpacity(0.2),
+                width: 1,
+              ),
             ),
-          ],
+            child: Text(
+              "$nickname撤回了一条消息",
+              style: TextStyle(
+                fontSize: 12, 
+                color: colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
         ),
       );
     }
 
     if (isCurrentUser) {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,31 +143,45 @@ class MessageBubble extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  nickname,
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 4),
-                Card(
-                  color: messageType == "text"
-                      ? const Color.fromRGBO(0, 153, 255, 1)
-                      : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 4),
+                  child: Text(
+                    nickname,
+                    style: TextStyle(
+                      fontSize: 13, 
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: buildMessageContent(),
+                ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                         filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE94B4B),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: buildMessageContent(),
+                      ),
+                    ),
                   ),
                 ),
                 Row(
                   children: [
                     if (Config.user['display_time'])
-                      Text(
-                        data['time'].toString(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, right: 8),
+                        child: Text(
+                          data['time'].toString(),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                     if (Config.user['display_time'] && isRecalled)
@@ -163,7 +198,7 @@ class MessageBubble extends StatelessWidget {
             const SizedBox(width: 10),
             CircleAvatar(
               backgroundImage: NetworkImage(
-                '${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/avatars/user/$userId.png',
+                '${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/avatars/user/$userId.png',
               ),
             ),
           ],
@@ -171,34 +206,55 @@ class MessageBubble extends StatelessWidget {
       );
     } else {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              backgroundImage: NetworkImage(
-                '${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/avatars/user/$userId.png',
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: colorScheme.primaryContainer,
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundImage: NetworkImage(
+                    '${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/avatars/user/$userId.png',
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  nickname,
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 4),
+                  child: Text(
+                    nickname,
+                    style: TextStyle(
+                      fontSize: 13, 
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 4),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: buildMessageContent(),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F0F0),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: buildMessageContent(),
+                          ),
+                        ),
                       ),
                     ),
                     if (Config.user['+1'] && !isRecalled)
@@ -213,11 +269,15 @@ class MessageBubble extends StatelessWidget {
                 Row(
                   children: [
                     if (Config.user['display_time'])
-                      Text(
-                        data['time'].toString(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, right: 8),
+                        child: Text(
+                          data['time'].toString(),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                     if (Config.user['display_time'] && isRecalled)
@@ -248,14 +308,12 @@ class ResendButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ButtonStyle(
-          backgroundColor: MaterialStateProperty.all(
-            Config.user['color'] == 'default' || Config.user['color'] == 'light'
-                ? const Color.fromRGBO(0, 153, 255, 1)
-                : const Color.fromRGBO(147, 112, 219, 1),
+          backgroundColor: WidgetStateProperty.all(
+            const Color(0xFFE94B4B),
           ),
-          shape: MaterialStateProperty.all(const CircleBorder()),
-          iconSize: MaterialStateProperty.all(24),
-          minimumSize: MaterialStateProperty.all(const Size(32, 32)),
+          shape: WidgetStateProperty.all(const CircleBorder()),
+          iconSize: WidgetStateProperty.all(24),
+          minimumSize: WidgetStateProperty.all(const Size(32, 32)),
         ),
         child: const Text('+1', style: TextStyle(color: Colors.white)),
       ),

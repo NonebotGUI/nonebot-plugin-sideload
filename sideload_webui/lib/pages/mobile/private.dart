@@ -231,16 +231,9 @@ class _HomeScreenState extends State<ChatPrivateMobile> {
           IconButton(
             icon: const Icon(Icons.brightness_6),
             onPressed: () {
-              themeNotifier.toggleTheme();
-              setState(() {
-                if (Config.user['color'] == 'light' ||
-                    Config.user['color'] == 'default') {
-                  Config.user['color'] = 'dark';
-                } else {
-                  Config.user['color'] = 'light';
-                }
-              });
-            },
+                themeNotifier.toggleTheme();
+                setState(() {});
+              },
             color: Colors.white,
           ),
         ],

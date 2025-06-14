@@ -2,13 +2,12 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:html';
+import 'dart:html' as html;
 import 'package:sideload_webui/main.dart';
 import 'package:flutter/material.dart';
 import 'package:sideload_webui/pages/mobile/group.dart';
 import 'package:sideload_webui/pages/mobile/private.dart';
 import 'package:sideload_webui/utils/global.dart';
-import 'dart:html' as html;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -33,7 +32,7 @@ class _HomeScreenState extends State<MainPageMobile> {
         setState(() {});
       });
     });
-    socket.onMessage.listen((MessageEvent msg) async {
+    socket.onMessage.listen((html.MessageEvent msg) async {
       String? msg0 = msg.data;
       if (msg0 != null) {
         Map<String, dynamic> msgJson = jsonDecode(msg0);
@@ -95,14 +94,7 @@ class _HomeScreenState extends State<MainPageMobile> {
               icon: const Icon(Icons.brightness_6),
               onPressed: () {
                 themeNotifier.toggleTheme();
-                setState(() {
-                  if (Config.user['color'] == 'light' ||
-                      Config.user['color'] == 'default') {
-                    Config.user['color'] = 'dark';
-                  } else {
-                    Config.user['color'] = 'light';
-                  }
-                });
+                setState(() {});
               },
               color: Colors.white,
             ),
@@ -151,7 +143,7 @@ class _HomeScreenState extends State<MainPageMobile> {
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundImage: NetworkImage(
-                                '${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/avatars/group/${Data.groupList[index]['group_id']}.png',
+                                '${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/avatars/group/${Data.groupList[index]['group_id']}.png',
                               ),
                             ),
                             title: Text(
@@ -198,7 +190,7 @@ class _HomeScreenState extends State<MainPageMobile> {
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundImage: NetworkImage(
-                                '${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/avatars/user/${Data.friendList[index]['user_id']}.png',
+                                '${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/avatars/user/${Data.friendList[index]['user_id']}.png',
                               ),
                             ),
                             title: Text(

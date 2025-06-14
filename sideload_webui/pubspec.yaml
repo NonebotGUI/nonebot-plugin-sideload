@@ -40,6 +40,9 @@ dependencies:
   provider: ^6.1.2
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.4.0
+  # Material Design 3 and blur effects
+  dynamic_color: ^1.7.0
+  web_socket_channel: ^2.4.0
 
 dev_dependencies:
   flutter_test:

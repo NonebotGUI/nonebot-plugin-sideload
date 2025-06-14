@@ -1,51 +1,46 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:async';
 import 'dart:convert';
-import 'dart:html';
-import 'package:sideload_webui/main.dart';
-import 'package:flutter/material.dart';
-import 'package:sideload_webui/pages/chat_group.dart';
-import 'package:sideload_webui/pages/private_chat.dart';
-import 'package:sideload_webui/utils/global.dart';
 import 'dart:html' as html;
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../main.dart'; // Import ThemeNotifier from main.dart
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import '../utils/global.dart';
+// import '../utils/theme.dart';
+import 'chat_group.dart';
+import 'private_chat.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
   @override
-  State<MainPage> createState() => _HomeScreenState();
+  State<MainPage> createState() => _MainPageState();
 }
 
-class _HomeScreenState extends State<MainPage> {
-  final myController = TextEditingController();
+class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
   Timer? timer;
   Timer? timer2;
-  int runningCount = 0;
-  String title = '主页';
+  late WebSocketChannel socket;
+  String title = 'NoneBot SideLoad WebUI';
 
   @override
   void initState() {
     super.initState();
-    setState(() {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        setState(() {});
-      });
-    });
-    socket.onMessage.listen((MessageEvent msg) async {
-      String? msg0 = msg.data;
-      if (msg0 != null) {
-        Map<String, dynamic> msgJson = jsonDecode(msg0);
-        String type = msgJson['type'];
-        switch (type) {
-          case 'total':
-            Map data = msgJson['data'];
-            Data.botInfo = data;
+    socket = WebSocketChannel.connect(Uri.parse(
+        'ws://${html.window.location.hostname}:${Uri.base.port}/sideload/ws'));
+    socket.stream.listen((message) {
+      if (message != null) {
+        Map<String, dynamic> msgJson = jsonDecode(message);
+        switch (msgJson['type']) {
+          case 'bot_info':
+            Data.botInfo = msgJson['data'];
             setState(() {
-              Data.groupList = data['group_list'];
-              Data.friendList = data['friend_list'];
+              title = Data.botInfo['nickname'];
             });
             break;
           case 'group_msg':
@@ -78,161 +73,168 @@ class _HomeScreenState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
+    final colorScheme = Theme.of(context).colorScheme;
     dynamic size = MediaQuery.of(context).size;
     double height = size.height;
     html.document.title = '$title | NoneBot SideLoad WebUI';
+    
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('NoneBot SideLoad',
-              style: TextStyle(color: Colors.white)),
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.brightness_6),
-              onPressed: () {
-                themeNotifier.toggleTheme();
-                setState(() {
-                  if (Config.user['color'] == 'light' ||
-                      Config.user['color'] == 'default') {
-                    Config.user['color'] = 'dark';
-                  } else {
-                    Config.user['color'] = 'light';
-                  }
-                });
-              },
+      backgroundColor: colorScheme.surface,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text('Chat',
+            style: TextStyle(
               color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+            )),
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFFE94B4B),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              themeNotifier.themeData.brightness == Brightness.dark ? Icons.light_mode : Icons.dark_mode,
+              color: colorScheme.onSurface,
             ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              color: Colors.white,
-              tooltip: '登出',
-              onPressed: () {
-                //logout();
-                html.window.location.reload();
-                // _showNotification();
-              },
+            onPressed: () {
+              themeNotifier.toggleTheme();
+            },
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert,
+              color: colorScheme.onSurface,
+            ),
+            onSelected: (String value) {
+              switch (value) {
+                case 'logout':
+                  logout();
+                  Navigator.pushReplacementNamed(context, '/login');
+                  break;
+                case 'about':
+                  showAboutDialog(
+                    context: context,
+                    applicationName: 'NoneBot SideLoad WebUI',
+                    applicationVersion: '1.0.0',
+                    applicationIcon: const Icon(Icons.chat),
+                    children: [
+                      const Text('一个基于 Flutter 的 NoneBot 侧载插件 WebUI'),
+                    ],
+                  );
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('退出登录'),
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'about',
+                child: ListTile(
+                  leading: Icon(Icons.info),
+                  title: Text('关于'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0F0), // 浅红色背景
+        ),
+        child: Row(
+          children: <Widget>[
+            Container(
+              margin: const EdgeInsets.only(top: 80, left: 8, bottom: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE94B4B), // 红色导航栏
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (int index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
+                  backgroundColor: Colors.transparent,
+                  elevation: null,
+                  labelType: NavigationRailLabelType.all,
+                  leading: Container(
+                    margin: const EdgeInsets.only(top: 16, bottom: 16),
+                    child: CircleAvatar(
+                      radius: 24,
+                      backgroundColor: Colors.white,
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundImage: NetworkImage(
+                          "${html.window.location.protocol}//${html.window.location.hostname}:${Uri.base.port}/sideload/avatars/user/${Data.botInfo['id']}.png"),
+                      ),
+                    ),
+                  ),
+                  useIndicator: false,
+                  selectedIconTheme: const IconThemeData(
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  unselectedIconTheme: const IconThemeData(
+                    color: Colors.white70,
+                    size: 24,
+                  ),
+                  selectedLabelTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                  unselectedLabelTextStyle: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                  ),
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.chat_outlined),
+                      selectedIcon: Icon(Icons.chat),
+                      label: Text('私聊'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.group_outlined),
+                      selectedIcon: Icon(Icons.group),
+                      label: Text('群聊'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(top: 80, right: 8, bottom: 8, left: 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: const <Widget>[
+                      ChatPrivate(),
+                      ChatGroup(),
+                    ],
+                  ),
+                ),
+              ),
             )
           ],
         ),
-        body: Row(
-          children: [
-            NavigationRail(
-              leading: CircleAvatar(
-                  backgroundImage: NetworkImage(
-                      "${window.location.protocol}//${window.location.hostname}:${Uri.base.port}/sideload/avatars/user/${Data.botInfo['id']}.png")),
-              useIndicator: false,
-              selectedIconTheme: IconThemeData(
-                  color: Config.user['color'] == 'light' ||
-                          Config.user['color'] == 'default'
-                      ? const Color.fromRGBO(0, 153, 255, 1)
-                      : const Color.fromRGBO(147, 112, 219, 1),
-                  size: height * 0.03),
-              selectedLabelTextStyle: TextStyle(
-                color: Config.user['color'] == 'light' ||
-                        Config.user['color'] == 'default'
-                    ? const Color.fromRGBO(0, 153, 255, 1)
-                    : const Color.fromRGBO(147, 112, 219, 1),
-                fontSize: height * 0.02,
-              ),
-              unselectedLabelTextStyle: TextStyle(
-                fontSize: height * 0.02,
-                color: Config.user['color'] == 'light' ||
-                        Config.user['color'] == 'default'
-                    ? Colors.grey[600]
-                    : Colors.white,
-              ),
-              unselectedIconTheme: IconThemeData(
-                  color: Config.user['color'] == 'light' ||
-                          Config.user['color'] == 'default'
-                      ? Colors.grey[600]
-                      : Colors.white,
-                  size: height * 0.03),
-              elevation: 2,
-              indicatorShape: const RoundedRectangleBorder(),
-              onDestinationSelected: (int index) {
-                setState(() {
-                  _selectedIndex = index;
-                  switch (index) {
-                    case 0:
-                      title = '好友';
-                      break;
-                    case 1:
-                      title = '群组';
-                      break;
-                    case 2:
-                      title = '开源许可证';
-                      break;
-                    case 3:
-                      title = '设置';
-                      break;
-                    default:
-                      title = 'Unknown';
-                      break;
-                  }
-                });
-              },
-              selectedIndex: _selectedIndex,
-              extended: false,
-              destinations: <NavigationRailDestination>[
-                NavigationRailDestination(
-                  icon: Tooltip(
-                    message: '好友',
-                    child: Icon(
-                      _selectedIndex == 0
-                          ? Icons.person_rounded
-                          : Icons.person_outline_rounded,
-                    ),
-                  ),
-                  label: const Text('好友'),
-                ),
-                NavigationRailDestination(
-                  icon: Tooltip(
-                    message: '群组',
-                    child: Icon(
-                      _selectedIndex == 1
-                          ? Icons.group_rounded
-                          : Icons.group_outlined,
-                    ),
-                  ),
-                  label: const Text('群组'),
-                ),
-                //     NavigationRailDestination(
-                //       icon: Tooltip(
-                //         message: '设置',
-                //         child: Icon(
-                //           _selectedIndex == 2
-                //               ? Icons.settings_rounded
-                //               : Icons.settings_outlined,
-                //         ),
-                //       ),
-                //       label: const Text('设置'),
-                //     ),
-                //     NavigationRailDestination(
-                //       icon: Tooltip(
-                //         message: '开源许可证',
-                //         child: Icon(
-                //           _selectedIndex == 3
-                //               ? Icons.balance_rounded
-                //               : Icons.balance_outlined,
-                //         ),
-                //       ),
-                //       label: const Text('开源许可证'),
-                //     ),
-              ],
-            ),
-            const VerticalDivider(thickness: 1, width: 1),
-            Expanded(
-              child: IndexedStack(
-                index: _selectedIndex,
-                children: const <Widget>[
-                  ChatPrivate(),
-                  ChatGroup(),
-                  // Text('设置'),
-                  // Text('开源许可证')
-                ],
-              ),
-            )
-          ],
-        ));
+      ),
+    );
   }
 }

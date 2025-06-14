@@ -11,6 +11,7 @@ import 'package:sideload_webui/pages/mobile/main_page.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:provider/provider.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 
 // void main() async {
 //   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,7 @@ import 'package:provider/provider.dart';
 
 void main() {
   version = '0.1.0';
-  debug = false;
+  debug = true;
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.dumpErrorToConsole(details, forceReport: true);
   };
@@ -55,14 +56,19 @@ class ThemeNotifier extends ChangeNotifier {
 
   ThemeData get themeData => _themeData;
 
-  void toggleTheme() {
+  void toggleTheme() async {
     if (_themeMode == 'light') {
       _themeMode = 'dark';
       _themeData = _getTheme('dark');
+      Config.user['color'] = 'dark';
     } else {
       _themeMode = 'light';
       _themeData = _getTheme('light');
+      Config.user['color'] = 'light';
     }
+    // 保存配置到SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('config', jsonEncode(Config.user));
     notifyListeners();
   }
 }
@@ -74,9 +80,79 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
 
-    return MaterialApp(
-      theme: themeNotifier.themeData,
-      home: const LoginPage(),
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        ColorScheme lightScheme;
+        ColorScheme darkScheme;
+
+        // 使用红色主题，匹配截图中的样式
+        if (lightDynamic != null && darkDynamic != null) {
+          lightScheme = lightDynamic.harmonized();
+          darkScheme = darkDynamic.harmonized();
+        } else {
+          lightScheme = ColorScheme.fromSeed(
+            seedColor: const Color(0xFFE94B4B), // 红色主题
+            brightness: Brightness.light,
+          );
+          darkScheme = ColorScheme.fromSeed(
+            seedColor: const Color(0xFFE94B4B), // 红色主题
+            brightness: Brightness.dark,
+          );
+        }
+
+        return MaterialApp(
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: lightScheme,
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+            cardTheme: CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            appBarTheme: AppBarTheme(
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              backgroundColor: lightScheme.surface,
+              foregroundColor: lightScheme.onSurface,
+            ),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorScheme: darkScheme,
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+            cardTheme: CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            appBarTheme: AppBarTheme(
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              backgroundColor: darkScheme.surface,
+              foregroundColor: darkScheme.onSurface,
+            ),
+          ),
+          themeMode: themeNotifier._themeMode == 'dark' ? ThemeMode.dark : ThemeMode.light,
+          home: const LoginPage(),
+        );
+      },
     );
   }
 }
@@ -168,22 +244,22 @@ class _LoginPageState extends State<LoginPage> {
     if (!debug) {
       autoLogin();
     }
-    // getConfig();
+    getConfig();
   }
 
   // 获取用户配置文件
-  // Future<void> getConfig() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final config = await prefs.getString('config');
-  //   if (config == null) {
-  //     String cfg = Config.user.toString();
-  //     await prefs.setString('config', cfg);
-  //   } else {
-  //     Config.user = jsonDecode(config);
-  //   }
-  //   initialThemeMode = Config.user['color'] ?? 'light';
-  //   setState(() {});
-  // }
+  Future<void> getConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    final config = await prefs.getString('config');
+    if (config == null) {
+      String cfg = jsonEncode(Config.user);
+      await prefs.setString('config', cfg);
+    } else {
+      Config.user = jsonDecode(config);
+    }
+    initialThemeMode = Config.user['color'] ?? 'light';
+    setState(() {});
+  }
 
   // 自动登录
   Future<void> autoLogin() async {

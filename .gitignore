@@ -44,3 +44,5 @@ sideload_webui/android/app/release
 
 sideload_webui/.vscode
 sideload_webui/build.sh
+nonebot_plugin_sideload/__pycache__/config.cpython-310.pyc
+nonebot_plugin_sideload/__pycache__/__init__.cpython-310.pyc
